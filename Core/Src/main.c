@@ -65,7 +65,8 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+  int counta=0;
+  int countb=0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -94,13 +95,36 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-   
-    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
-    HAL_Delay(3000);
-    while(1)
+    while(counta<5)
     {
+      HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+      HAL_Delay(500);
       HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+      HAL_Delay(500);
+      counta++;
+      HAL_Delay(1000);
     }
+    counta=0;
+    while(countb<3)
+    {
+      HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+      HAL_Delay(200);
+      HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+      HAL_Delay(200);
+      countb++;
+    }
+    countb=0;
+    HAL_Delay(1000);
+    while(countb<3)
+    {
+      HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+      HAL_Delay(800);
+      HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+      HAL_Delay(200);
+      countb++;
+    }
+    HAL_Delay(1000);
+    countb=0;
   }
   /* USER CODE END WHILE */
   /* USER CODE BEGIN 3 */
