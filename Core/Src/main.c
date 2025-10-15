@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "tim.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -43,7 +44,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+int counter = 1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -54,7 +55,11 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+volatile uint8_t led_mode = 0;  // 0:递增模式 1:递减模式 2:固定模式
+volatile uint16_t current_n = 1; // 当前灭时间系数（灭时间 = n × 100ms）
+volatile uint8_t led_state = 1;  // LED状态：1亮 0灭
+volatile uint16_t time_counter = 0; // 时间计数器
+volatile uint16_t target_count = 5; // 目标计数：亮固定5×100ms=0.5s
 /* USER CODE END 0 */
 
 /**
@@ -65,7 +70,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -86,22 +90,17 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  HAL_TIM_Base_Start_IT(&htim1); //启动定时器1并使能中断
   while (1)
   {
-    if(HAL_GPIO_ReadPin(control_GPIO_Port, control_Pin)==GPIO_PIN_RESET)
-    {
-      HAL_GPIO_WritePin(LED_GPIO_Port,LED_Pin, GPIO_PIN_RESET);
-    }
-    else
-    {
-      HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-    }
+    
   }
     /* USER CODE END WHILE */
 
@@ -149,7 +148,61 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim->Instance == TIM1) 
+  {
+    time_counter++;
 
+    if (led_state == 1) 
+    { // LED is ON
+      if (time_counter >= target_count) 
+      {
+        HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET); // Turn OFF LED
+        led_state = 0;
+        time_counter = 0;
+        __disable_irq();
+        if (led_mode == 0) {
+          current_n++;
+        } else if (led_mode == 1) {
+          if(current_n > 1) current_n--;
+          else {
+            current_n = 1;
+          } // 立即进行边界检查
+        } else if (led_mode == 2) {
+          current_n = 5;
+        }
+        __enable_irq();
+
+        target_count = current_n; // 更新灭灯时间目标
+      }
+    } 
+    else 
+    { // LED is OFF
+      if (time_counter >= target_count) 
+      { // 修正：统一使用target_count判断
+        HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET); // Turn ON LED
+        led_state = 1;
+        time_counter = 0;
+        target_count = 5; // 亮灯时间固定
+      }
+    }
+  }
+}
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if (GPIO_Pin == GPIO_PIN_3) {
+    // 切换到递减模式
+    __disable_irq();
+    led_mode = 1;
+    __enable_irq();
+  } else if (GPIO_Pin == GPIO_PIN_4) {
+    // 切换到固定间隔模式
+    __disable_irq();
+    led_mode = 2;
+    __enable_irq();
+  }
+}
 /* USER CODE END 4 */
 
 /**
